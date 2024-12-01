@@ -1,14 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import sequelize from './config/database';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import sequelize from "@/config/database";
 
-// Models
-import './models/Conta';
-import './models/Transacao';
-import './models/Categoria';
-import './models/CartaoCredito';
-import './models/Transferencia';
+import contaRoutes from "@/routes/ContaRoute";
 
 dotenv.config();
 
@@ -22,16 +17,18 @@ app.use(express.json());
 async function initDatabase() {
   try {
     await sequelize.authenticate();
-    console.log('Conexão com o banco de dados estabelecida com sucesso.');
-    
+    console.log("Conexão com o banco de dados estabelecida com sucesso.");
+
     await sequelize.sync({ alter: true });
-    console.log('Tabelas criadas/atualizadas com sucesso.');
+    console.log("Tabela atualizadas com sucesso.");
   } catch (error) {
-    console.error('Erro ao conectar com o banco de dados:', error);
+    console.error("Erro ao conectar com o banco de dados:", error);
   }
 }
 
 initDatabase();
+
+app.use("/contas", contaRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
