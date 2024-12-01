@@ -28,8 +28,12 @@ class ContaService {
       ) {
         throw new ApiError("Tipo de conta inválido", 400);
       }
-      
-      if (dados.moeda !== 'BRL' && dados.moeda !== 'USD' && dados.moeda !== 'EUR') {
+
+      if (
+        dados.moeda !== "BRL" &&
+        dados.moeda !== "USD" &&
+        dados.moeda !== "EUR"
+      ) {
         throw new ApiError("Moeda inválida", 400);
       }
 
@@ -55,22 +59,41 @@ class ContaService {
 
   async atualizar(id: number, dados: Partial<Conta>) {
     const conta = await Conta.findByPk(id);
+
     if (!conta) {
-      throw new Error("Conta não encontrada");
+      throw new ApiError("Conta não encontrada", 404);
     }
 
     if (dados.saldo !== undefined) {
-      throw new Error("Não é possível atualizar o saldo diretamente");
+      throw new ApiError("Não é possível atualizar o saldo diretamente", 400);
     }
 
     await conta.update(dados);
     return conta;
   }
 
+  async ativar(id: number) {
+    const conta = await Conta.findByPk(id);
+    if (!conta) {
+      throw new ApiError("Conta não encontrada", 404);
+    }
+
+    if (conta.status) {
+      throw new ApiError("Conta já está ativa", 400);
+    }
+
+    await conta.update({ status: true });
+    return conta;
+  }
+
   async desativar(id: number) {
     const conta = await Conta.findByPk(id);
     if (!conta) {
-      throw new Error("Conta não encontrada");
+      throw new ApiError("Conta não encontrada", 404);
+    }
+
+    if (!conta.status) {
+      throw new ApiError("Conta já está desativada", 400);
     }
 
     await conta.update({ status: false });
