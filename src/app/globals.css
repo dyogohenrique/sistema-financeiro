@@ -1,12 +1,14 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @layer base {
-  :root {
-    color-scheme: light dark;
-  }
+    :root {
+        color-scheme: light dark;
+    }
 }
 
 @plugin "daisyui" {
-  themes: corporate --default, night --prefersdark;
-  logs: true;
+    themes:
+        corporate --default,
+        night --prefersdark;
+    logs: true;
 }

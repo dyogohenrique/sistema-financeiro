@@ -9,7 +9,7 @@ export default function LoginPage() {
             <h1 className="text-3xl text-center font-semibold">Login</h1>
             <p className="text-md text-center opacity-85">Utilize seu email e senha cadastrados para entrar</p>
         </div>
-        <form className="h-full flex flex-col justify-center items-center gap-10 my-10">
+        <form className="h-full flex flex-col justify-center items-center gap-6 my-10">
             <div className="w-full">
                 <label className='input w-full'>
                     <MdAlternateEmail />

@@ -1,10 +1,9 @@
-import { ThemeController } from "@/components/ThemeController";
+import { ThemeController } from '@/components/ThemeController';
 
 export default function Home() {
-  return (
-    <div>
-      <ThemeController />
-      
-    </div>
-  );
+    return (
+        <div>
+            <ThemeController />
+        </div>
+    );
 }
