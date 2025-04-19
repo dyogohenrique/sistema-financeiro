@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoTransacao {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
+  CREDITO
+}
+
+enum TipoConta {
+  CORRENTE
+  POUPANCA
+  INVESTIMENTO
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id         Int        @id @default(autoincrement())
+  nome       String
+  email      String     @unique
+  password   String     @db.VarChar(255)
+  role       Role       @default(USER)
+  ativo      Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt()
+
+  contas     Conta[]
+  cartoes    CartaoCredito[]
+  categorias Categoria[]
+  transacoes Transacao[]
+  faturas    FaturaCartao[]
+
+  // Campos adicionais para autenticação
+  sessionToken    String?    // Token de sessão
+  tokenExpiresAt  DateTime?  // Data de expiração do token
+
+  @@index([email])
+}
+
+
+model Conta {
+  id                      Int        @id @default(autoincrement())
+  nome                    String
+  tipo                    TipoConta
+  saldoInicial            BigInt
+  ativa                   Boolean    @default(true)
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt()
+
+  userId               Int
+  user                 User    @relation(fields: [userId], references: [id])
+
+  transacoes              Transacao[] @relation("ContaOrigem")
+  transferenciasRecebidas Transacao[] @relation("ContaDestino")
+
+  @@index([userId])
+}
+
+model Categoria {
+  id         Int        @id @default(autoincrement())
+  nome       String
+  tipo       TipoTransacao
+  cor        String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt()
+
+  userId  Int
+  user    User    @relation(fields: [userId], references: [id])
+
+  transacoes Transacao[]
+
+  @@index([userId])
+}
+
+model Transacao {
+  id             Int        @id @default(autoincrement())
+  tipo           TipoTransacao
+  valorCentavos  BigInt
+  data           DateTime
+  descricao      String?
+  parcelas       Int?
+  numeroParcela  Int?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt()
+
+  categoriaId    Int?
+  categoria      Categoria?    @relation(fields: [categoriaId], references: [id])
+
+  contaOrigemId  Int?
+  contaOrigem    Conta?        @relation("ContaOrigem", fields: [contaOrigemId], references: [id])
+
+  contaDestinoId Int?
+  contaDestino   Conta?        @relation("ContaDestino", fields: [contaDestinoId], references: [id])
+
+  cartaoId       Int?
+  cartao         CartaoCredito? @relation(fields: [cartaoId], references: [id])
+
+  faturaId       Int?
+  fatura         FaturaCartao? @relation(fields: [faturaId], references: [id])
+
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([data])
+}
+
+model CartaoCredito {
+  id             Int        @id @default(autoincrement())
+  nome           String
+  bancoEmissor   String
+  limiteCentavos BigInt
+  diaFechamento  Int
+  diaVencimento  Int
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt()
+
+  userId      Int
+  user        User    @relation(fields: [userId], references: [id])
+
+  transacoes     Transacao[]
+  faturas        FaturaCartao[]
+
+  @@index([userId])
+}
+
+model FaturaCartao {
+  id             Int        @id @default(autoincrement())
+  mesReferencia  Int
+  anoReferencia  Int
+  valorTotal     BigInt
+  pago           Boolean    @default(false)
+  dataPagamento  DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt()
+
+  cartaoId       Int
+  cartao         CartaoCredito @relation(fields: [cartaoId], references: [id])
+
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+
+
+  transacoes     Transacao[]
+
+  @@unique([cartaoId, mesReferencia, anoReferencia])
+  @@index([userId])
+}
