@@ -2,29 +2,30 @@
 
 import { signIn } from 'auth';
 
-interface AuthError extends Error {
-    type?: string;
-}
-
 export async function loginAction(_prevState: any, formData: FormData) {
     try {
-        await signIn('credentials', {
+        const result = await signIn('credentials', {
             email: formData.get('email'),
             password: formData.get('password'),
+            redirect: false,
         });
-        return {
-            success: true,
-        };
-    } catch (error) {
-        if (error instanceof Error && (error as AuthError).type === 'CredentialsSignin') {
+
+        if (result?.error) {
             return {
                 success: false,
                 message: 'Email ou senha inválidos',
             };
         }
+
+        return {
+            success: true,
+            url: '/',
+        };
+    } catch (error) {
+        console.error('Erro durante login:', error);
         return {
             success: false,
-            message: 'Erro Interno',
+            message: 'Erro interno do servidor',
         };
     }
 }

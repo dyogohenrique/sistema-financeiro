@@ -1,13 +1,22 @@
 'use client';
 
 import Form from 'next/form';
-import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useActionState, useEffect } from 'react';
 import { FaKey } from 'react-icons/fa';
 import { MdAlternateEmail } from 'react-icons/md';
 import { loginAction } from './loginActions';
 
 export default function LoginForm() {
+    const router = useRouter();
     const [state, formAction, isPending] = useActionState(loginAction, null);
+
+    useEffect(() => {
+        if (state?.success && state.url) {
+            router.push(state.url);
+            router.refresh();
+        }
+    }, [state, router]);
 
     return (
         <>
@@ -37,6 +46,7 @@ export default function LoginForm() {
                             name="password"
                             id="password"
                             placeholder="Digite sua senha"
+                            required
                             className="w-full"
                         />
                     </label>
