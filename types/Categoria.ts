@@ -4,7 +4,7 @@ import { Transacao } from './Transacao';
 
 export interface Categoria {
   id: number;
-  nome: string;
+  name: string;
   tipo: 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'CREDITO';
   cor: string;
 

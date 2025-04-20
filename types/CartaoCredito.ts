@@ -5,7 +5,7 @@ import { FaturaCartao } from './FaturaCartao';
 
 export interface CartaoCredito {
   id: number;
-  nome: string;
+  name: string;
   bancoEmissor: string;
   limiteCentavos: bigint;
   diaFechamento: number;

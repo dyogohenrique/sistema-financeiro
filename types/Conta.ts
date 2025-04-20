@@ -4,7 +4,7 @@ import { Transacao } from './Transacao';
 
 export interface Conta {
   id: number;
-  nome: string;
+  name: string;
   tipo: 'CORRENTE' | 'POUPANCA' | 'INVESTIMENTO';
   saldoInicial: bigint;
   ativa: boolean;

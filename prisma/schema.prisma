@@ -41,10 +41,6 @@ model User {
   transacoes Transacao[]
   faturas    FaturaCartao[]
 
-  // Campos adicionais para autenticação
-  sessionToken    String?    // Token de sessão
-  tokenExpiresAt  DateTime?  // Data de expiração do token
-
   @@index([email])
 }
 

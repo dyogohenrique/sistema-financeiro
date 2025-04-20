@@ -1,12 +1,12 @@
-import { CartaoCredito } from "./CartaoCredito";
-import { Categoria } from "./Categoria";
-import { Conta } from "./Conta";
-import { FaturaCartao } from "./FaturaCartao";
-import { Transacao } from "./Transacao";
+import { CartaoCredito } from './CartaoCredito';
+import { Categoria } from './Categoria';
+import { Conta } from './Conta';
+import { FaturaCartao } from './FaturaCartao';
+import { Transacao } from './Transacao';
 
 export interface User {
     id: number;
-    nome: string;
+    name: string;
     email: string;
     password: string;
     role: 'ADMIN' | 'USER';
