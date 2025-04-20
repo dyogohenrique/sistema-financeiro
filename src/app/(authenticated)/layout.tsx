@@ -1,13 +1,14 @@
-import SidebarWrapper from '@/components/SidebarWrapper';
-import { ReactNode } from 'react';
+import Sidebar from '@/components/Sidebar';
+import { auth } from 'auth';
 
-export default function AuthenticateLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+    const session = await auth();
+    const userName = session?.user?.name || '';
+
     return (
-        <>
-            <SidebarWrapper />
-            <main>
-                {children}
-            </main>
-        </>
+        <div className="flex h-screen">
+            <Sidebar userName={userName} />
+            <main className="flex-1 p-4 overflow-auto">{children}</main>
+        </div>
     );
 }
