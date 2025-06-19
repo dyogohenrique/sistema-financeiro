@@ -1,17 +1,14 @@
 // path=src/models/Categoria.ts
-import { User } from './User';
-import { Transacao } from './Transacao';
+import { ITransacao } from './Transacao';
 
-export interface Categoria {
-  id: number;
-  name: string;
-  tipo: 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'CREDITO';
-  cor: string;
+export interface ICategoria {
+    id: number;
+    name: string;
+    tipo: 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'CREDITO';
+    cor: string;
 
-  createdAt: Date;
-  updatedAt: Date;
-  
-  userId: number;
-  user: User;
-  transacoes: Transacao[];
+    createdAt: Date;
+    updatedAt: Date;
+
+    transacoes: ITransacao[];
 }

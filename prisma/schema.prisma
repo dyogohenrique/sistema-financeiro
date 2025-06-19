@@ -20,31 +20,6 @@ enum TipoConta {
   INVESTIMENTO
 }
 
-enum Role {
-  ADMIN
-  USER
-}
-
-model User {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  password   String     @db.VarChar(255)
-  role       Role       @default(USER)
-  ativo      Boolean    @default(true)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt()
-
-  contas     Conta[]
-  cartoes    CartaoCredito[]
-  categorias Categoria[]
-  transacoes Transacao[]
-  faturas    FaturaCartao[]
-
-  @@index([email])
-}
-
-
 model Conta {
   id                      Int        @id @default(autoincrement())
   name                    String
@@ -54,13 +29,8 @@ model Conta {
   createdAt               DateTime   @default(now())
   updatedAt               DateTime   @updatedAt()
 
-  userId               Int
-  user                 User    @relation(fields: [userId], references: [id])
-
   transacoes              Transacao[] @relation("ContaOrigem")
   transferenciasRecebidas Transacao[] @relation("ContaDestino")
-
-  @@index([userId])
 }
 
 model Categoria {
@@ -71,12 +41,7 @@ model Categoria {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt()
 
-  userId  Int
-  user    User    @relation(fields: [userId], references: [id])
-
   transacoes Transacao[]
-
-  @@index([userId])
 }
 
 model Transacao {
@@ -105,10 +70,6 @@ model Transacao {
   faturaId       Int?
   fatura         FaturaCartao? @relation(fields: [faturaId], references: [id])
 
-  userId      Int
-  user        User       @relation(fields: [userId], references: [id])
-
-  @@index([userId])
   @@index([data])
 }
 
@@ -122,13 +83,8 @@ model CartaoCredito {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt()
 
-  userId      Int
-  user        User    @relation(fields: [userId], references: [id])
-
   transacoes     Transacao[]
   faturas        FaturaCartao[]
-
-  @@index([userId])
 }
 
 model FaturaCartao {
@@ -144,12 +100,7 @@ model FaturaCartao {
   cartaoId       Int
   cartao         CartaoCredito @relation(fields: [cartaoId], references: [id])
 
-  userId      Int
-  user        User       @relation(fields: [userId], references: [id])
-
-
   transacoes     Transacao[]
 
   @@unique([cartaoId, mesReferencia, anoReferencia])
-  @@index([userId])
 }

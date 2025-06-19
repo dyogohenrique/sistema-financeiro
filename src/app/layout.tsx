@@ -1,3 +1,4 @@
+import Sidebar from '@/components/Sidebar';
 import { ThemeProvider } from '@/Providers/theme-provider';
 import { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -33,7 +34,12 @@ export default function RootLayout({
                     storageKey="theme"
                     disableTransitionOnChange
                 >
-                    {children}
+                    <div className="flex h-screen">
+                        <Sidebar />
+                        <div className="flex-1 overflow-auto ml-64">
+                            <main className=' className="p-10"'>{children}</main>
+                        </div>
+                    </div>
                 </ThemeProvider>
             </body>
         </html>
