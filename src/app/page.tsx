@@ -1,13 +1,23 @@
-import { ThemeController } from '@/components/ThemeController';
+'use client';
+
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+    const [mounted, setMounted] = useState(false);
+    const { theme, resolvedTheme } = useTheme();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return <div>Carregando...</div>;
+    }
+
     return (
         <div>
-            <ThemeController />
-
-            <div className="">
-                <h1 className="">Bem-vindo ao Dashboard</h1>
-            </div>
+            <h1 className="text-2xl font-bold">Bem-vindo ao Sistema Financeiro!</h1>
         </div>
     );
 }

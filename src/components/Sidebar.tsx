@@ -1,60 +1,77 @@
 'use client';
 
-
+import { cn } from '@/lib/utils';
+import { Calendar, ChevronLeft, ChevronRight, CreditCard, Home, Receipt, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(true);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const menuItems = [
-        { href: '/', label: 'Início' },
-        { href: '/calendar', label: 'Calendário' },
-        { href: '/transactions', label: 'Transações' },
-        { href: '/cards', label: 'Cartões de crédito' },
+        { href: '/', label: 'Início', icon: Home },
+        { href: '/calendario', label: 'Calendário', icon: Calendar },
+        { href: '/transacoes', label: 'Transações', icon: Receipt },
+        { href: '/cartoes', label: 'Cartões de crédito', icon: CreditCard },
+        { href: '/configuracoes', label: 'Configurações', icon: Settings },
     ];
 
+    // Atualizar o layout quando o sidebar mudar
+    useEffect(() => {
+        const root = document.documentElement;
+        if (isCollapsed) {
+            root.style.setProperty('--sidebar-width', '4rem');
+        } else {
+            root.style.setProperty('--sidebar-width', '16rem');
+        }
+    }, [isCollapsed]);
+
     return (
-        <>
-            <div
-                className={`fixed top-0 left-0 h-full w-64 bg-background border-r transition-transform duration-300 ease-in-out z-50 ${
-                    isOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
-            >
-                <div className="p-4 flex flex-col justify-between h-full">
-                    <div>
-                        <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-xl font-semibold">Menu</h2>
-                            <button onClick={() => setIsOpen(false)}>✕</button>
-                        </div>
-                        <nav className="space-y-2">
-                            {menuItems.map((item) => (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`block px-4 py-2 rounded-md transition-colors ${
-                                        pathname === item.href
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'hover:bg-muted'
-                                    }`}
-                                >
-                                    {item.label}
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
+        <div
+            className={`bg-background fixed top-0 left-0 z-50 h-full border-r shadow-md transition-all duration-300 ease-in-out ${
+                isCollapsed ? 'w-16' : 'w-64'
+            }`}
+        >
+            <div className="flex h-full flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b p-4">
+                    {!isCollapsed && <h2 className="text-xl font-semibold">Sistema Financeiro</h2>}
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="hover:bg-muted rounded-md p-1 transition-colors"
+                        title={isCollapsed ? 'Expandir menu' : 'Encolher menu'}
+                    >
+                        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                    </button>
                 </div>
+
+                {/* Navigation */}
+                <nav className="flex-1">
+                    {menuItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href;
+
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    'flex w-full items-center px-3 py-5 transition-colors',
+                                    isActive && 'bg-primary text-primary-foreground',
+                                    !isActive && 'hover:bg-muted',
+                                    isCollapsed && 'justify-center'
+                                )}
+                                title={isCollapsed ? item.label : undefined}
+                            >
+                                <Icon size={20} className="flex-shrink-0" />
+                                {!isCollapsed && <span className="ml-3">{item.label}</span>}
+                            </Link>
+                        );
+                    })}
+                </nav>
             </div>
-            {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="fixed top-4 left-4 z-50 p-2 bg-background border rounded-md hover:bg-muted"
-                >
-                    ☰
-                </button>
-            )}
-        </>
+        </div>
     );
 }
