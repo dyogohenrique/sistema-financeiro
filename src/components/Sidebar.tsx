@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Calendar, ChevronLeft, ChevronRight, CreditCard, Home, Receipt, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Landmark, Receipt, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,9 +12,8 @@ export default function Sidebar() {
 
     const menuItems = [
         { href: '/', label: 'Início', icon: Home },
-        { href: '/calendario', label: 'Calendário', icon: Calendar },
         { href: '/transacoes', label: 'Transações', icon: Receipt },
-        { href: '/cartoes', label: 'Cartões de crédito', icon: CreditCard },
+        { href: '/contas', label: 'contas', icon: Landmark },
         { href: '/configuracoes', label: 'Configurações', icon: Settings },
     ];
 
