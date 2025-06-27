@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Home, Landmark, Receipt, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CreditCard, Home, Landmark, Receipt, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,8 +12,9 @@ export default function Sidebar() {
 
     const menuItems = [
         { href: '/', label: 'Início', icon: Home },
-        { href: '/transacoes', label: 'Transações', icon: Receipt },
         { href: '/contas', label: 'contas', icon: Landmark },
+        { href: '/cartoes', label: 'Cartões de Crédito', icon: CreditCard },
+        { href: '/transacoes', label: 'Transações', icon: Receipt },
         { href: '/configuracoes', label: 'Configurações', icon: Settings },
     ];
 

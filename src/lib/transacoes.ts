@@ -1,4 +1,4 @@
-import { ITransacao } from '../../types/Transacao';
+import { ITransacao } from '@tipos/Transacao';
 
 // Dados de exemplo para o calendário e gráfico
 export const transacoesExemplo: ITransacao[] = [

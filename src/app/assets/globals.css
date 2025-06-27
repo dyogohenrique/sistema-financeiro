@@ -27,7 +27,7 @@
     /* Cores de Estado */
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
-    --color-danger: var(--danger);
+    --color-destructive: var(--destructive);
 
     /* Cores de Interface */
     --color-card: var(--card);
