@@ -24,7 +24,8 @@ model Conta {
   id                      Int        @id @default(autoincrement())
   name                    String
   tipo                    TipoConta
-  saldoInicial            BigInt
+  saldoCentavos           BigInt     @default(0)
+  cor                     String     @default("#3B82F6")
   ativa                   Boolean    @default(true)
   createdAt               DateTime   @default(now())
   updatedAt               DateTime   @updatedAt()
