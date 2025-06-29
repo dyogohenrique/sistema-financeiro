@@ -17,6 +17,7 @@ export default function ContasPage() {
     const [selectedAccount, setSelectedAccount] = useState<number | null>(null);
 
     const [showForm, setShowForm] = useState(false);
+    
     const [showAtivarModal, setShowAtivarModal] = useState(false);
     const [showDesativarModal, setShowDesativarModal] = useState(false);
     const [contaParaAtivar, setContaParaAtivar] = useState<number | null>(null);
