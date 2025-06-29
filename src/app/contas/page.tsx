@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Conta, TipoConta } from '@prisma/client';
 import { Check, Edit, PiggyBank, Plus, Trash2, TrendingUp, Wallet } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ContaForm } from './_components/ContaForm';
 
 export default function ContasPage() {
@@ -22,14 +22,21 @@ export default function ContasPage() {
     const [contaParaAtivar, setContaParaAtivar] = useState<number | null>(null);
     const [contaParaDesativar, setContaParaDesativar] = useState<number | null>(null);
 
-    const fetchContas = async () => {
+    const fetchContas = useCallback(async () => {
         const contas = await getAllContas();
         setContas(contas);
-    };
+    }, []);
 
     useEffect(() => {
         fetchContas();
-    }, []);
+    }, [fetchContas]);
+
+    const handleCloseForm = useCallback(() => {
+        setShowForm(false);
+        setEditingAccount(null);
+        // Recarregar lista de contas
+        fetchContas();
+    }, [fetchContas]);
 
     const handleAtivar = (contaId: number) => {
         setContaParaAtivar(contaId);
@@ -96,7 +103,12 @@ export default function ContasPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Contas Bancárias</h1>
                     <p className="text-gray-600">Gerencie suas contas bancárias</p>
                 </div>
-                <Button onClick={() => setShowForm(true)}>
+                <Button
+                    onClick={() => {
+                        setShowForm(true);
+                        setEditingAccount(null);
+                    }}
+                >
                     <Plus className="mr-2 h-4 w-4" />
                     Nova Conta
                 </Button>
@@ -152,7 +164,7 @@ export default function ContasPage() {
                                     <div>
                                         <p className="text-muted-foreground text-sm">Saldo Atual</p>
                                         <p className="text-2xl font-bold">
-                                            {formatCurrency(Number(conta.saldoCentavos) / 100)}
+                                            {formatCurrency(Number(conta.saldoCentavos))}
                                         </p>
                                     </div>
                                     <Button
@@ -212,7 +224,12 @@ export default function ContasPage() {
                             Adicione sua primeira conta bancária para começar a gerenciar suas
                             finanças
                         </p>
-                        <Button onClick={() => setShowForm(true)}>
+                        <Button
+                            onClick={() => {
+                                setShowForm(true);
+                                setEditingAccount(null);
+                            }}
+                        >
                             <Plus className="mr-2 h-4 w-4" />
                             Adicionar Conta
                         </Button>
@@ -225,12 +242,7 @@ export default function ContasPage() {
                 open={showForm}
                 contaId={editingAccount}
                 contaData={contas.find((conta) => conta.id === editingAccount) || null}
-                onClose={() => {
-                    setShowForm(false);
-                    setEditingAccount(null);
-                    // Recarregar lista de contas
-                    fetchContas();
-                }}
+                onClose={handleCloseForm}
             />
 
             {/* Modal de confirmação para ativar conta */}

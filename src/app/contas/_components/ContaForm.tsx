@@ -30,7 +30,6 @@ interface AccountFormProps {
         id: number;
         name: string;
         tipo: TipoConta;
-        saldoCentavos: bigint;
         cor: string;
     } | null;
     onClose: () => void;
@@ -60,7 +59,6 @@ export function ContaForm({ open, contaId, contaData, onClose }: AccountFormProp
     const [formValues, setFormValues] = useState({
         name: contaData?.name || '',
         tipo: contaData?.tipo || TipoConta.CORRENTE,
-        saldoCentavos: contaData ? Number(contaData.saldoCentavos) / 100 : 0,
     });
 
     useEffect(() => {
@@ -69,7 +67,6 @@ export function ContaForm({ open, contaId, contaData, onClose }: AccountFormProp
             setFormValues({
                 name: contaData.name,
                 tipo: contaData.tipo,
-                saldoCentavos: Number(contaData.saldoCentavos) / 100,
             });
         }
     }, [contaData]);
@@ -82,7 +79,7 @@ export function ContaForm({ open, contaId, contaData, onClose }: AccountFormProp
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? 'Editar Conta' : 'Nova Conta'}</DialogTitle>
                     <DialogDescription>
@@ -124,18 +121,6 @@ export function ContaForm({ open, contaId, contaData, onClose }: AccountFormProp
                                 <SelectItem value={TipoConta.INVESTIMENTO}>Investimento</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="balance">Saldo {isEditing ? 'Atual' : 'Inicial'}</Label>
-                        <Input
-                            id="balance"
-                            type="number"
-                            step="0.01"
-                            name="saldoCentavos"
-                            defaultValue={formValues.saldoCentavos}
-                            placeholder="0,00"
-                        />
                     </div>
 
                     <div className="space-y-2">

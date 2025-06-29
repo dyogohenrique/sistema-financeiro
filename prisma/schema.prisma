@@ -69,7 +69,7 @@ model Transacao {
   cartao         CartaoCredito? @relation(fields: [cartaoId], references: [id])
 
   faturaId       Int?
-  fatura         FaturaCartao? @relation(fields: [faturaId], references: [id])
+  fatura         FaturaCartao?  @relation(fields: [faturaId], references: [id])
 
   @@index([data])
 }
@@ -77,10 +77,12 @@ model Transacao {
 model CartaoCredito {
   id             Int        @id @default(autoincrement())
   name           String
-  bancoEmissor   String
-  limiteCentavos BigInt
+  limiteCentavos BigInt     @default(0)
   diaFechamento  Int
   diaVencimento  Int
+  cor            String     @default("#3B82F6")
+  ativo          Boolean    @default(true)
+
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt()
 
@@ -90,18 +92,22 @@ model CartaoCredito {
 
 model FaturaCartao {
   id             Int        @id @default(autoincrement())
-  mesReferencia  Int
-  anoReferencia  Int
-  valorTotal     BigInt
+  mesReferencia  Int        // 1-12
+  anoReferencia  Int        // 2024, 2025, etc
+  valorCentavos  BigInt     @default(0)
   pago           Boolean    @default(false)
-  dataPagamento  DateTime?
+  dataPagamento DateTime?
+  dataVencimento DateTime
+  dataFechamento DateTime
+  
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt()
 
   cartaoId       Int
   cartao         CartaoCredito @relation(fields: [cartaoId], references: [id])
-
+  
   transacoes     Transacao[]
 
   @@unique([cartaoId, mesReferencia, anoReferencia])
+  @@index([cartaoId, pago])
 }

@@ -10,8 +10,6 @@ export async function createContas(
     try {
         const name = formData.get('name') as string;
         const tipo = formData.get('tipo') as TipoConta;
-        const saldoReais = parseFloat((formData.get('saldoCentavos') as string) || '0');
-        const saldoCentavos = BigInt(Math.round(saldoReais * 100));
         const cor = formData.get('cor') as string;
 
         const existAccount = await prisma.conta.findFirst({
@@ -43,10 +41,6 @@ export async function createContas(
             return { errors: 'Tipo de conta inválido', success: false };
         }
 
-        if (saldoCentavos < 0) {
-            return { errors: 'Saldo não pode ser negativo', success: false };
-        }
-
         if (!cor) {
             return { errors: 'Selecione uma cor para a conta!', success: false };
         }
@@ -55,7 +49,6 @@ export async function createContas(
             data: {
                 name,
                 tipo,
-                saldoCentavos,
                 cor,
             },
         });
@@ -74,8 +67,6 @@ export async function updateConta(
         const id = parseInt(formData.get('id') as string);
         const name = formData.get('name') as string;
         const tipo = formData.get('tipo') as TipoConta;
-        const saldoReais = parseFloat((formData.get('saldoCentavos') as string) || '0');
-        const saldoCentavos = BigInt(Math.round(saldoReais * 100));
         const cor = formData.get('cor') as string;
 
         await prisma.conta.update({
@@ -83,7 +74,6 @@ export async function updateConta(
             data: {
                 name,
                 tipo,
-                saldoCentavos,
                 cor,
             },
         });
