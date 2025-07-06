@@ -92,6 +92,7 @@ export default function CartoesPage() {
                         setShowForm(true);
                         setEditingCard(null);
                     }}
+                    variant="outline"
                 >
                     <Plus className="mr-2 h-4 w-4" />
                     Novo Cartão
@@ -252,6 +253,7 @@ export default function CartoesPage() {
                                 setShowForm(true);
                                 setEditingCard(null);
                             }}
+                            variant="outline"
                         >
                             <Plus className="mr-2 h-4 w-4" />
                             Adicionar Cartão

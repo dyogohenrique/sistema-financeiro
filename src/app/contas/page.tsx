@@ -17,7 +17,7 @@ export default function ContasPage() {
     const [selectedAccount, setSelectedAccount] = useState<number | null>(null);
 
     const [showForm, setShowForm] = useState(false);
-    
+
     const [showAtivarModal, setShowAtivarModal] = useState(false);
     const [showDesativarModal, setShowDesativarModal] = useState(false);
     const [contaParaAtivar, setContaParaAtivar] = useState<number | null>(null);
@@ -109,6 +109,7 @@ export default function ContasPage() {
                         setShowForm(true);
                         setEditingAccount(null);
                     }}
+                    variant="outline"
                 >
                     <Plus className="mr-2 h-4 w-4" />
                     Nova Conta
@@ -230,6 +231,7 @@ export default function ContasPage() {
                                 setShowForm(true);
                                 setEditingAccount(null);
                             }}
+                            variant="outline"
                         >
                             <Plus className="mr-2 h-4 w-4" />
                             Adicionar Conta
