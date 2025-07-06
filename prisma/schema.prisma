@@ -20,6 +20,12 @@ enum TipoConta {
   INVESTIMENTO
 }
 
+enum StatusTransacao {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
 model Conta {
   id                      Int        @id @default(autoincrement())
   name                    String
@@ -53,6 +59,7 @@ model Transacao {
   descricao      String?
   parcelas       Int?
   numeroParcela  Int?
+  status         StatusTransacao
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt()
 
