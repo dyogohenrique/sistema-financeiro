@@ -13,7 +13,6 @@ export default function Sidebar() {
     const menuItems = [
         { href: '/', label: 'Início', icon: Home },
         { href: '/contas', label: 'contas', icon: Landmark },
-        { href: '/cartoes', label: 'Cartões de Crédito', icon: CreditCard },
         { href: '/transacoes', label: 'Transações', icon: Receipt },
         { href: '/configuracoes', label: 'Configurações', icon: Settings },
     ];
