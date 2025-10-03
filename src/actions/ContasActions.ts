@@ -18,9 +18,9 @@ export async function createContas(
             },
         });
 
-        if (existAccount) {
+        if (existAccount && existAccount.tipo === tipo) {
             return {
-                errors: 'Nome da conta já existe, por favor, escolha outro nome',
+                errors: 'Essa conta já existe',
                 success: false,
             };
         }
@@ -68,6 +68,34 @@ export async function updateConta(
         const name = formData.get('name') as string;
         const tipo = formData.get('tipo') as TipoConta;
         const cor = formData.get('cor') as string;
+
+        const conta = await prisma.conta.findUnique({
+            where: { id },
+        });
+
+        if (!conta) {
+            return { errors: 'Conta não encontrada', success: false };
+        }
+
+        if (conta.name === name && conta.tipo === tipo && conta.cor === cor) {
+            return {
+                errors: 'Nenhuma alteração foi realizada',
+                success: true,
+            };
+        }
+
+        const existAccount = await prisma.conta.findFirst({
+            where: {
+                name,
+            },
+        });
+
+        if (existAccount && existAccount.tipo === tipo && existAccount.id !== id) {
+            return {
+                errors: 'Essa conta já existe',
+                success: false,
+            };
+        }
 
         await prisma.conta.update({
             where: { id },
