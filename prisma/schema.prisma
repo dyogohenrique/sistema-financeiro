@@ -11,13 +11,13 @@ enum TipoTransacao {
   ENTRADA
   SAIDA
   TRANSFERENCIA
-  CREDITO
 }
 
 enum TipoConta {
   CORRENTE
   POUPANCA
   INVESTIMENTO
+  SALARIO
 }
 
 enum StatusTransacao {
@@ -40,6 +40,29 @@ model Conta {
   transferenciasRecebidas Transacao[] @relation("ContaDestino")
 }
 
+model Transacao {
+  id             Int        @id @default(autoincrement())
+  tipo           TipoTransacao
+  valorCentavos  BigInt
+  data           DateTime?
+  descricao      String?
+  envolvido      String?
+  status         StatusTransacao
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt()
+
+  categoriaId    Int
+  categoria      Categoria    @relation(fields: [categoriaId], references: [id])
+
+  contaOrigemId  Int
+  contaOrigem    Conta        @relation("ContaOrigem", fields: [contaOrigemId], references: [id])
+
+  contaDestinoId Int?
+  contaDestino   Conta?        @relation("ContaDestino", fields: [contaDestinoId], references: [id])
+
+  @@index([data])
+}
+
 model Categoria {
   id         Int        @id @default(autoincrement())
   name       String
@@ -49,72 +72,4 @@ model Categoria {
   updatedAt  DateTime   @updatedAt()
 
   transacoes Transacao[]
-}
-
-model Transacao {
-  id             Int        @id @default(autoincrement())
-  tipo           TipoTransacao
-  valorCentavos  BigInt
-  data           DateTime
-  descricao      String?
-  parcelas       Int?
-  numeroParcela  Int?
-  status         StatusTransacao
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt()
-
-  categoriaId    Int?
-  categoria      Categoria?    @relation(fields: [categoriaId], references: [id])
-
-  contaOrigemId  Int?
-  contaOrigem    Conta?        @relation("ContaOrigem", fields: [contaOrigemId], references: [id])
-
-  contaDestinoId Int?
-  contaDestino   Conta?        @relation("ContaDestino", fields: [contaDestinoId], references: [id])
-
-  cartaoId       Int?
-  cartao         CartaoCredito? @relation(fields: [cartaoId], references: [id])
-
-  faturaId       Int?
-  fatura         FaturaCartao?  @relation(fields: [faturaId], references: [id])
-
-  @@index([data])
-}
-
-model CartaoCredito {
-  id             Int        @id @default(autoincrement())
-  name           String
-  limiteCentavos BigInt     @default(0)
-  diaFechamento  Int
-  diaVencimento  Int
-  cor            String     @default("#3B82F6")
-  ativo          Boolean    @default(true)
-
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt()
-
-  transacoes     Transacao[]
-  faturas        FaturaCartao[]
-}
-
-model FaturaCartao {
-  id             Int        @id @default(autoincrement())
-  mesReferencia  Int        // 1-12
-  anoReferencia  Int        // 2024, 2025, etc
-  valorCentavos  BigInt     @default(0)
-  pago           Boolean    @default(false)
-  dataPagamento DateTime?
-  dataVencimento DateTime
-  dataFechamento DateTime
-  
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt()
-
-  cartaoId       Int
-  cartao         CartaoCredito @relation(fields: [cartaoId], references: [id])
-  
-  transacoes     Transacao[]
-
-  @@unique([cartaoId, mesReferencia, anoReferencia])
-  @@index([cartaoId, pago])
 }
