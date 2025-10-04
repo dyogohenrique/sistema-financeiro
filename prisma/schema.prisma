@@ -66,8 +66,7 @@ model Transacao {
 model Categoria {
   id         Int        @id @default(autoincrement())
   name       String
-  tipo       TipoTransacao
-  cor        String
+  color      String
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt()
 
