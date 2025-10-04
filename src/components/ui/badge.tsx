@@ -1,6 +1,6 @@
-import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -13,12 +13,22 @@ const badgeVariants = cva(
           "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        success:
-          "border-transparent bg-green-500 text-white [a&]:hover:bg-green-500/90 focus-visible:ring-green-500/20 dark:focus-visible:ring-green-500/40 dark:bg-green-500/60",
         destructive:
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+      },
+            color: {
+        blue:   "border-transparent bg-account-blue text-white [a&]:hover:bg-account-blue/90",
+        green:  "border-transparent bg-account-green text-white [a&]:hover:bg-account-green/90",
+        amber:  "border-transparent bg-account-amber text-black [a&]:hover:bg-account-amber/90",
+        red:    "border-transparent bg-account-red text-white [a&]:hover:bg-account-red/90",
+        purple: "border-transparent bg-account-purple text-white [a&]:hover:bg-account-purple/90",
+        cyan:   "border-transparent bg-account-cyan text-white [a&]:hover:bg-account-cyan/90",
+        lime:   "border-transparent bg-account-lime text-black [a&]:hover:bg-account-lime/90",
+        orange: "border-transparent bg-account-orange text-white [a&]:hover:bg-account-orange/90",
+        pink:   "border-transparent bg-account-pink text-white [a&]:hover:bg-account-pink/90",
+        gray:   "border-transparent bg-account-gray text-white [a&]:hover:bg-account-gray/90",
       },
     },
     defaultVariants: {
@@ -30,6 +40,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant,
+  color,
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
@@ -39,7 +50,7 @@ function Badge({
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(badgeVariants({ variant, color }), className)}
       {...props}
     />
   )
