@@ -51,14 +51,13 @@ model Transacao {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt()
 
-  categoriaId    Int
-  categoria      Categoria    @relation(fields: [categoriaId], references: [id])
-
   contaOrigemId  Int
   contaOrigem    Conta        @relation("ContaOrigem", fields: [contaOrigemId], references: [id])
 
   contaDestinoId Int?
   contaDestino   Conta?        @relation("ContaDestino", fields: [contaDestinoId], references: [id])
+
+  categorias     TransacaoCategoria[]
 
   @@index([data])
 }
@@ -70,5 +69,17 @@ model Categoria {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt()
 
-  transacoes Transacao[]
+  transacoes TransacaoCategoria[]
+}
+
+model TransacaoCategoria {
+  id           Int       @id @default(autoincrement())
+  transacaoId  Int
+  categoriaId  Int
+  createdAt    DateTime  @default(now())
+
+  transacao    Transacao @relation(fields: [transacaoId], references: [id], onDelete: Cascade)
+  categoria    Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([transacaoId, categoriaId])
 }

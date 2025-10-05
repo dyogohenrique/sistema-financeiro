@@ -2,38 +2,16 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 
-import { ITransacao } from '@tipos/Transacao';
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowDown01, ArrowDown10, MoreHorizontal } from 'lucide-react';
+import { ArrowDown01, ArrowDown10, Edit, Trash2 } from 'lucide-react';
 
-export const columns: ColumnDef<ITransacao>[] = [
-    {
-        accessorKey: 'id',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-                    className="flex w-full justify-between"
-                >
-                    ID
-                    {column.getIsSorted() === 'asc' ? (
-                        <ArrowDown01 className="ml-2 h-4 w-4" />
-                    ) : column.getIsSorted() === 'desc' ? (
-                        <ArrowDown10 className="ml-2 h-4 w-4" />
-                    ) : (
-                        <ArrowDown01 className="ml-2 h-4 w-4 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const id = row.original.id;
-            return <span className="float-end">{id}</span>;
-        },
-    },
+interface ColumnsProps {
+    onEdit: (id: number) => void;
+    onDelete: (id: number) => void;
+}
+
+export const createColumns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<any>[] => [
     {
         accessorKey: 'data',
         header: ({ column }) => {
@@ -88,6 +66,18 @@ export const columns: ColumnDef<ITransacao>[] = [
         header: 'Tipo',
         cell: ({ row }) => {
             const tipo = row.original.tipo;
+            const getTipoLabel = (tipo: string) => {
+                switch (tipo) {
+                    case 'ENTRADA':
+                        return 'Entrada';
+                    case 'SAIDA':
+                        return 'Saída';
+                    case 'TRANSFERENCIA':
+                        return 'Transferência';
+                    default:
+                        return tipo;
+                }
+            };
             return (
                 <Badge
                     variant={
@@ -97,13 +87,113 @@ export const columns: ColumnDef<ITransacao>[] = [
                               ? 'destructive'
                               : tipo === 'TRANSFERENCIA'
                                 ? 'outline'
-                                : tipo === 'CREDITO'
-                                  ? 'success'
-                                  : 'default'
+                                : 'default'
                     }
                 >
-                    {tipo}
+                    {getTipoLabel(tipo)}
                 </Badge>
+            );
+        },
+    },
+    {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => {
+            const status = row.original.status;
+            const getStatusLabel = (status: string) => {
+                switch (status) {
+                    case 'PAGO':
+                        return 'Pago';
+                    case 'PENDENTE':
+                        return 'Pendente';
+                    case 'CANCELADO':
+                        return 'Cancelado';
+                    default:
+                        return status;
+                }
+            };
+            return (
+                <Badge
+                    variant={
+                        status === 'PAGO'
+                            ? 'success'
+                            : status === 'PENDENTE'
+                              ? 'secondary'
+                              : status === 'CANCELADO'
+                                ? 'destructive'
+                                : 'default'
+                    }
+                >
+                    {getStatusLabel(status)}
+                </Badge>
+            );
+        },
+    },
+    {
+        accessorKey: 'categorias',
+        header: 'Categorias',
+        cell: ({ row }) => {
+            const categorias = row.original.categorias;
+            if (!categorias || categorias.length === 0) {
+                return <span>-</span>;
+            }
+
+            return (
+                <div className="flex flex-wrap gap-1">
+                    {categorias.map((tc: any, index: number) => (
+                        <div
+                            key={index}
+                            className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs"
+                        >
+                            <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: tc.categoria?.color || '#gray' }}
+                            />
+                            <span>{tc.categoria?.name || '-'}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'contaOrigem',
+        header: 'Conta',
+        cell: ({ row }) => {
+            const contaOrigem = row.original.contaOrigem;
+            const contaDestino = row.original.contaDestino;
+            const tipo = row.original.tipo;
+
+            if (tipo === 'TRANSFERENCIA' && contaDestino) {
+                return (
+                    <div className="text-sm">
+                        <div className="flex items-center gap-1">
+                            <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: contaOrigem?.cor || '#gray' }}
+                            />
+                            {contaOrigem?.name || '-'}
+                        </div>
+                        <div className="text-xs text-gray-500">→</div>
+                        <div className="flex items-center gap-1">
+                            <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: contaDestino?.cor || '#gray' }}
+                            />
+                            {contaDestino?.name || '-'}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex items-center gap-2">
+                    <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: contaOrigem?.cor || '#gray' }}
+                    />
+                    <span>{contaOrigem?.name || '-'}</span>
+                </div>
             );
         },
     },
@@ -121,10 +211,14 @@ export const columns: ColumnDef<ITransacao>[] = [
         accessorKey: 'actions',
         header: '',
         cell: ({ row }) => {
+            const transacao = row.original;
             return (
-                <div className="flex justify-end">
-                    <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(transacao.id)}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => onDelete(transacao.id)}>
+                        <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
             );
