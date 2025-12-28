@@ -1,196 +1,176 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { Conta, TipoConta } from '@prisma/client';
 
-export async function createContas(
-    formState: { errors: string; success?: boolean },
+import { ContaSchema } from '@/schemas/contas';
+import { Conta } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
+
+export type ActionState = {
+    errors?: {
+        name?: string[];
+        _form?: string[];
+    };
+    message?: string;
+    success?: boolean;
+};
+
+export async function createConta(
+    prevState: ActionState,
     formData: FormData
-): Promise<{ errors: string; success?: boolean }> {
+): Promise<ActionState> {
+    const validatedFields = ContaSchema.safeParse({
+        name: formData.get('name'),
+        tipo: formData.get('tipo'),
+        cor: formData.get('cor'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Erro ao criar conta',
+            success: false,
+        };
+    }
+
+    const { data } = validatedFields;
+
     try {
-        const name = formData.get('name') as string;
-        const tipo = formData.get('tipo') as TipoConta;
-        const cor = formData.get('cor') as string;
-
-        const existAccount = await prisma.conta.findFirst({
-            where: {
-                name,
-            },
+        await prisma.$transaction(async (tx) => {
+            const novaConta = await tx.conta.create({
+                data: {
+                    ...data,
+                    saldoCentavos: BigInt(0),
+                    ativa: true,
+                },
+            });
         });
-
-        if (existAccount && existAccount.tipo === tipo) {
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            const target = error.meta?.target as string[];
+            let fieldError = {};
+            if (target.includes('name')) {
+                fieldError = {
+                    name: ['Conta já existe'],
+                };
+            }
             return {
-                errors: 'Essa conta já existe',
+                errors: fieldError,
+                message: 'Contas duplicadas encontradas',
                 success: false,
             };
         }
-
-        if (!name) {
-            return { errors: 'Nome é obrigatório', success: false };
-        }
-
-        if (!tipo) {
-            return { errors: 'Tipo é obrigatório', success: false };
-        }
-
-        if (
-            tipo !== TipoConta.CORRENTE &&
-            tipo !== TipoConta.POUPANCA &&
-            tipo !== TipoConta.INVESTIMENTO
-        ) {
-            return { errors: 'Tipo de conta inválido', success: false };
-        }
-
-        if (!cor) {
-            return { errors: 'Selecione uma cor para a conta!', success: false };
-        }
-
-        await prisma.conta.create({
-            data: {
-                name,
-                tipo,
-                cor,
-            },
-        });
-
-        return { errors: '', success: true };
-    } catch (error) {
-        return { errors: `Erro ao criar conta: ${error}`, success: false };
+        return {
+            message: 'Erro no sistema. Tente novamente mais tarde.',
+            success: false,
+        };
     }
+
+    revalidatePath('/contas');
+    return {
+        message: 'Conta criada com sucesso',
+        success: true,
+    };
 }
 
 export async function updateConta(
-    formState: { errors: string; success?: boolean },
+    id: number,
+    prevState: ActionState,
     formData: FormData
-): Promise<{ errors: string; success?: boolean }> {
-    try {
-        const id = parseInt(formData.get('id') as string);
-        const name = formData.get('name') as string;
-        const tipo = formData.get('tipo') as TipoConta;
-        const cor = formData.get('cor') as string;
+): Promise<ActionState> {
+    const validatedFields = ContaSchema.safeParse({
+        name: formData.get('name'),
+        tipo: formData.get('tipo'),
+        cor: formData.get('cor'),
+    });
 
-        const conta = await prisma.conta.findUnique({
-            where: { id },
-        });
-
-        if (!conta) {
-            return { errors: 'Conta não encontrada', success: false };
-        }
-
-        if (conta.name === name && conta.tipo === tipo && conta.cor === cor) {
-            return {
-                errors: 'Nenhuma alteração foi realizada',
-                success: true,
-            };
-        }
-
-        const existAccount = await prisma.conta.findFirst({
-            where: {
-                name,
-            },
-        });
-
-        if (existAccount && existAccount.tipo === tipo && existAccount.id !== id) {
-            return {
-                errors: 'Essa conta já existe',
-                success: false,
-            };
-        }
-
-        await prisma.conta.update({
-            where: { id },
-            data: {
-                name,
-                tipo,
-                cor,
-            },
-        });
-
-        return { errors: '', success: true };
-    } catch (error) {
-        return { errors: `Erro ao atualizar conta: ${error}`, success: false };
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Erro ao atualizar conta',
+            success: false,
+        };
     }
+
+    const { data } = validatedFields;
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            const contaAtualizada = await tx.conta.update({
+                where: { id },
+                data: { ...data },
+            });
+        });
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            return {
+                success: false,
+                message: 'Conta já existe',
+            };
+        }
+        return {
+            success: false,
+            message: 'Erro no sistema. Tente novamente mais tarde.',
+        };
+    }
+
+    revalidatePath('/contas');
+    return {
+        message: 'Conta atualizada com sucesso',
+        success: true,
+    };
+}
+
+export async function desativarConta(id: number): Promise<ActionState> {
+    try {
+        await prisma.$transaction(async (tx) => {
+            const contaDesativada = await tx.conta.update({
+                where: { id },
+                data: { ativa: false },
+            });
+        });
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Erro ao desativar conta',
+        };
+    }
+    revalidatePath('/contas');
+    return {
+        message: 'Conta Desativada com sucesso',
+        success: true,
+    };
+}
+
+export async function ativarConta(id: number): Promise<ActionState> {
+    try {
+        await prisma.$transaction(async (tx) => {
+            const contaAtivada = await tx.conta.update({
+                where: { id },
+                data: { ativa: true },
+            });
+        });
+    } catch (error: any) {
+        return {
+            success: false,
+            message: 'Erro ao ativar conta',
+        };
+    }
+    revalidatePath('/contas');
+    return {
+        message: 'Conta Ativada com sucesso',
+        success: true,
+    };
+}
+
+export async function getConta(id: number): Promise<Conta | null> {
+    const conta = await prisma.conta.findUnique({
+        where: { id },
+    });
+    return conta;
 }
 
 export async function getAllContas(): Promise<Conta[]> {
-    try {
-        const contas = await prisma.conta.findMany({
-            orderBy: { createdAt: 'desc' },
-        });
-        return contas;
-    } catch (error) {
-        console.error('Erro ao buscar contas:', error);
-        return [];
-    }
-}
-
-export async function getContaById(
-    id: number
-): Promise<{ errors: string; success?: boolean; conta?: Conta }> {
-    try {
-        const conta = await prisma.conta.findUnique({
-            where: { id },
-        });
-
-        if (!conta) {
-            return { errors: 'Conta não encontrada', success: false };
-        }
-        return { errors: '', success: true, conta };
-    } catch (error) {
-        console.error('Erro ao buscar conta:', error);
-        return { errors: `Erro ao buscar conta: ${error}`, success: false };
-    }
-}
-
-export async function ativarConta(id: number): Promise<{ errors: string; success?: boolean }> {
-    try {
-        const conta = await prisma.conta.findUnique({
-            where: { id },
-        });
-        if (!conta) {
-            return { errors: 'Conta não encontrada', success: false };
-        }
-
-        if (conta.ativa) {
-            return { errors: 'Conta já está ativa', success: false };
-        }
-
-        await prisma.conta.update({
-            where: { id },
-            data: {
-                ativa: true,
-            },
-        });
-
-        return { errors: '', success: true };
-    } catch (error) {
-        return { errors: `Erro ao ativar conta: ${error}`, success: false };
-    }
-}
-
-export async function desativarConta(id: number): Promise<{ errors: string; success?: boolean }> {
-    try {
-        const conta = await prisma.conta.findUnique({
-            where: { id },
-        });
-
-        if (!conta) {
-            return { errors: 'Conta não encontrada', success: false };
-        }
-
-        if (!conta.ativa) {
-            return { errors: 'Conta já está desativada', success: false };
-        }
-
-        await prisma.conta.update({
-            where: { id },
-            data: {
-                ativa: false,
-            },
-        });
-
-        return { errors: '', success: true };
-    } catch (error) {
-        return { errors: `Erro ao desativar conta: ${error}`, success: false };
-    }
+    const contas = await prisma.conta.findMany();
+    return contas;
 }

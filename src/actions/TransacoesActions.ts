@@ -39,7 +39,6 @@ export async function createTransacao(
 ): Promise<{ errors: string; success?: boolean }> {
     try {
         const dados = extractFormData(formData);
-        console.log('Dados extraídos:', dados);
 
         if (!dados.tipo) {
             return { errors: 'Tipo é obrigatório', success: false };
@@ -103,25 +102,75 @@ export async function createTransacao(
             return { errors: 'Uma ou mais categorias não foram encontradas', success: false };
         }
 
-        // Criar a transação com as categorias
-        await prisma.transacao.create({
-            data: {
-                tipo: dados.tipo,
-                valorCentavos: dados.valorCentavos,
-                descricao: dados.descricao,
-                envolvido: dados.envolvido,
-                data: dados.data,
-                status: dados.status,
-                contaOrigemId: dados.contaOrigemId,
-                contaDestinoId: dados.contaDestinoId,
-                categorias: {
-                    create: dados.categoriaIds.map((categoriaId) => ({
-                        categoriaId: categoriaId,
-                    })),
+        await prisma.$transaction(async (tx) => {
+            // 1. Cria a transação
+            const transacao = await tx.transacao.create({
+                data: {
+                    tipo: dados.tipo,
+                    valorCentavos: dados.valorCentavos,
+                    descricao: dados.descricao,
+                    envolvido: dados.envolvido,
+                    data: dados.data,
+                    status: dados.status,
+                    contaOrigemId: dados.contaOrigemId,
+                    contaDestinoId: dados.contaDestinoId,
+                    categorias: {
+                        create: dados.categoriaIds.map((categoriaId) => ({
+                            categoriaId: categoriaId,
+                        })),
+                    },
                 },
-            },
-        });
+            });
 
+            // 2. Se a transação foi paga, atualiza o saldo da(s) conta(s)
+            if (transacao.status === StatusTransacao.PAGO) {
+                switch (transacao.tipo) {
+                    case TipoTransacao.ENTRADA:
+                        await tx.conta.update({
+                            where: { id: transacao.contaOrigemId },
+                            data: {
+                                saldoCentavos: {
+                                    increment: transacao.valorCentavos,
+                                },
+                            },
+                        });
+                        break;
+                    case TipoTransacao.SAIDA:
+                        await tx.conta.update({
+                            where: { id: transacao.contaOrigemId },
+                            data: {
+                                saldoCentavos: {
+                                    decrement: transacao.valorCentavos,
+                                },
+                            },
+                        });
+                        break;
+                    case TipoTransacao.TRANSFERENCIA:
+                        // Garante que contaDestinoId não é nulo
+                        if (transacao.contaDestinoId) {
+                            // Diminui o saldo da conta de origem
+                            await tx.conta.update({
+                                where: { id: transacao.contaOrigemId },
+                                data: {
+                                    saldoCentavos: {
+                                        decrement: transacao.valorCentavos,
+                                    },
+                                },
+                            });
+                            // Aumenta o saldo da conta de destino
+                            await tx.conta.update({
+                                where: { id: transacao.contaDestinoId },
+                                data: {
+                                    saldoCentavos: {
+                                        increment: transacao.valorCentavos,
+                                    },
+                                },
+                            });
+                        }
+                        break;
+                }
+            }
+        });
         return { errors: '', success: true };
     } catch (error) {
         console.error('Erro ao criar transação:', error);
@@ -210,15 +259,53 @@ export async function updateTransacao(
             return { errors: 'Uma ou mais categorias não foram encontradas', success: false };
         }
 
-        // Atualizar a transação e suas categorias
         await prisma.$transaction(async (tx) => {
-            // Remover categorias existentes
-            await tx.transacaoCategoria.deleteMany({
-                where: { transacaoId: id },
+            // 1. Busca o estado original da transação
+            const transacaoAntiga = await tx.transacao.findUnique({
+                where: { id },
             });
 
-            // Atualizar a transação
-            await tx.transacao.update({
+            if (!transacaoAntiga) {
+                throw new Error('Transação não encontrada');
+            }
+
+            // 2. Reverte o efeito da transação antiga, se ela estava 'PAGA'
+            if (transacaoAntiga.status === StatusTransacao.PAGO) {
+                // A lógica é a mesma da função deleteTransacao
+                switch (transacaoAntiga.tipo) {
+                    case TipoTransacao.ENTRADA:
+                        await tx.conta.update({
+                            where: { id: transacaoAntiga.contaOrigemId },
+                            data: { saldoCentavos: { decrement: transacaoAntiga.valorCentavos } },
+                        });
+                        break;
+                    case TipoTransacao.SAIDA:
+                        await tx.conta.update({
+                            where: { id: transacaoAntiga.contaOrigemId },
+                            data: { saldoCentavos: { increment: transacaoAntiga.valorCentavos } },
+                        });
+                        break;
+                    case TipoTransacao.TRANSFERENCIA:
+                        if (transacaoAntiga.contaDestinoId) {
+                            await tx.conta.update({
+                                where: { id: transacaoAntiga.contaOrigemId },
+                                data: {
+                                    saldoCentavos: { increment: transacaoAntiga.valorCentavos },
+                                },
+                            });
+                            await tx.conta.update({
+                                where: { id: transacaoAntiga.contaDestinoId },
+                                data: {
+                                    saldoCentavos: { decrement: transacaoAntiga.valorCentavos },
+                                },
+                            });
+                        }
+                        break;
+                }
+            }
+
+            // 3. Atualiza a transação
+            const transacaoAtualizada = await tx.transacao.update({
                 where: { id },
                 data: {
                     tipo: dados.tipo,
@@ -229,18 +316,56 @@ export async function updateTransacao(
                     status: dados.status,
                     contaOrigemId: dados.contaOrigemId,
                     contaDestinoId: dados.contaDestinoId,
+                    // Lógica para atualizar categorias
+                    categorias: {
+                        deleteMany: {}, // Deleta as associações antigas
+                        create: dados.categoriaIds.map((categoriaId) => ({
+                            // Cria as novas
+                            categoriaId: categoriaId,
+                        })),
+                    },
                 },
             });
 
-            // Adicionar novas categorias
-            await tx.transacaoCategoria.createMany({
-                data: dados.categoriaIds.map((categoriaId) => ({
-                    transacaoId: id,
-                    categoriaId: categoriaId,
-                })),
-            });
+            // 4. Aplica o efeito da transação atualizada, se ela for 'PAGA'
+            if (transacaoAtualizada.status === StatusTransacao.PAGO) {
+                // A lógica é a mesma da função createTransacao
+                switch (transacaoAtualizada.tipo) {
+                    case TipoTransacao.ENTRADA:
+                        await tx.conta.update({
+                            where: { id: transacaoAtualizada.contaOrigemId },
+                            data: {
+                                saldoCentavos: { increment: transacaoAtualizada.valorCentavos },
+                            },
+                        });
+                        break;
+                    case TipoTransacao.SAIDA:
+                        await tx.conta.update({
+                            where: { id: transacaoAtualizada.contaOrigemId },
+                            data: {
+                                saldoCentavos: { decrement: transacaoAtualizada.valorCentavos },
+                            },
+                        });
+                        break;
+                    case TipoTransacao.TRANSFERENCIA:
+                        if (transacaoAtualizada.contaDestinoId) {
+                            await tx.conta.update({
+                                where: { id: transacaoAtualizada.contaOrigemId },
+                                data: {
+                                    saldoCentavos: { decrement: transacaoAtualizada.valorCentavos },
+                                },
+                            });
+                            await tx.conta.update({
+                                where: { id: transacaoAtualizada.contaDestinoId },
+                                data: {
+                                    saldoCentavos: { increment: transacaoAtualizada.valorCentavos },
+                                },
+                            });
+                        }
+                        break;
+                }
+            }
         });
-
         return { errors: '', success: true };
     } catch (error) {
         console.error('Erro ao atualizar transação:', error);
@@ -301,20 +426,77 @@ export async function getTransacaoById(
 
 export async function deleteTransacao(id: number): Promise<{ errors: string; success?: boolean }> {
     try {
-        const transacao = await prisma.transacao.findUnique({
-            where: { id },
-        });
+        await prisma.$transaction(async (tx) => {
+            const transacao = await tx.transacao.findUnique({
+                where: { id },
+            });
 
-        if (!transacao) {
-            return { errors: 'Transação não encontrada', success: false };
-        }
+            if (!transacao) {
+                throw new Error('Transação não encontrada');
+            }
 
-        await prisma.transacao.delete({
-            where: { id },
+            // Se a transação era 'PAGA', reverta o efeito no saldo
+            if (transacao.status === StatusTransacao.PAGO) {
+                switch (transacao.tipo) {
+                    case TipoTransacao.ENTRADA:
+                        // Se era uma entrada, agora vira uma saída (decrementa)
+                        await tx.conta.update({
+                            where: { id: transacao.contaOrigemId },
+                            data: {
+                                saldoCentavos: {
+                                    decrement: transacao.valorCentavos,
+                                },
+                            },
+                        });
+                        break;
+                    case TipoTransacao.SAIDA:
+                        // Se era uma saída, agora vira uma entrada (incrementa)
+                        await tx.conta.update({
+                            where: { id: transacao.contaOrigemId },
+                            data: {
+                                saldoCentavos: {
+                                    increment: transacao.valorCentavos,
+                                },
+                            },
+                        });
+                        break;
+                    case TipoTransacao.TRANSFERENCIA:
+                        if (transacao.contaDestinoId) {
+                            // Reverte a saída da conta de origem (soma de volta)
+                            await tx.conta.update({
+                                where: { id: transacao.contaOrigemId },
+                                data: {
+                                    saldoCentavos: {
+                                        increment: transacao.valorCentavos,
+                                    },
+                                },
+                            });
+                            // Reverte a entrada na conta de destino (subtrai)
+                            await tx.conta.update({
+                                where: { id: transacao.contaDestinoId },
+                                data: {
+                                    saldoCentavos: {
+                                        decrement: transacao.valorCentavos,
+                                    },
+                                },
+                            });
+                        }
+                        break;
+                }
+            }
+
+            // Finalmente, deleta a transação
+            await tx.transacao.delete({
+                where: { id },
+            });
         });
 
         return { errors: '', success: true };
     } catch (error) {
-        return { errors: `Erro ao excluir transação: ${error}`, success: false };
+        console.error('Erro ao excluir transação:', error);
+        return {
+            errors: `Erro ao excluir transação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+            success: false,
+        };
     }
 }

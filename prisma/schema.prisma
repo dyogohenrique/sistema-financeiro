@@ -31,7 +31,7 @@ model Conta {
   name                    String
   tipo                    TipoConta
   saldoCentavos           BigInt     @default(0)
-  cor                     String     @default("#3B82F6")
+  cor                     String     @db.VarChar(7)
   ativa                   Boolean    @default(true)
   createdAt               DateTime   @default(now())
   updatedAt               DateTime   @updatedAt()

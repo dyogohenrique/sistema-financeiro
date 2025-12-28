@@ -1,6 +1,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
+import { formatInTimeZone } from 'date-fns-tz';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,15 +35,9 @@ export const createColumns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<any
         },
         cell: ({ row }) => {
             const data = row.original.data;
-            return (
-                <span>
-                    {data.toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
-                </span>
-            );
+            // 2. Formate a data em UTC para evitar a conversão de fuso horário
+            const dataFormatada = formatInTimeZone(data, 'Etc/UTC', 'dd/MM/yyyy');
+            return <span>{dataFormatada}</span>;
         },
     },
     {
