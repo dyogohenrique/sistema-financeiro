@@ -2,6 +2,14 @@
 
 import { prisma } from '@/lib/prisma';
 
+export type ActionState = {
+    errors?: {
+        _form?: string[];
+    };
+    message?: string;
+    success?: boolean;
+};
+
 export interface DashboardData {
     saldoAtual: number;
     saldoDoMes: number;
@@ -15,7 +23,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         // Buscar todas as transações pagas
         const transacoes = await prisma.transacao.findMany({
             where: {
-                status: 'PAGO'
+                status: 'PAGO',
             },
             include: {
                 categorias: {
@@ -48,7 +56,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         const inicioDoMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
         const fimDoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0, 23, 59, 59);
 
-        const transacoesDoMes = transacoes.filter(transaction => {
+        const transacoesDoMes = transacoes.filter((transaction) => {
             if (!transaction.data) return false;
             const dataTransacao = new Date(transaction.data);
             return dataTransacao >= inicioDoMes && dataTransacao <= fimDoMes;
