@@ -45,3 +45,6 @@ next-env.d.ts
 
 # migrations do prisma
 /prisma/migrations/
+
+# Database
+/prisma/db/
