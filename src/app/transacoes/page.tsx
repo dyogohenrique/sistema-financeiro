@@ -1,17 +1,23 @@
 'use client';
 
+import { getAllCategorias } from '@/actions/CategotiasActions';
+import { getAllContas } from '@/actions/ContasActions';
 import { deleteTransacao, getAllTransacoes, getTransacaoById } from '@/actions/TransacoesActions';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { DataTable } from '@/components/DataTable';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Categoria, Conta } from '@prisma/client';
 import { Plus, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';   
+import { useCallback, useEffect, useState } from 'react';
+import { TransacaoFilters } from './_components/TransacaoFilters';
 import { TransacaoForm } from './_components/TransacaoForm';
 import { createColumns } from './_lib/columns';
 
 export default function TransacoesPage() {
     const [transacoes, setTransacoes] = useState<any[]>([]);
+    const [filteredTransacoes, setFilteredTransacoes] = useState<any[]>([]);
+    const [categorias, setCategorias] = useState<Categoria[]>([]);
+    const [contas, setContas] = useState<Conta[]>([]);
     const [editingTransacao, setEditingTransacao] = useState<number | null>(null);
     const [selectedTransacao, setSelectedTransacao] = useState<any | null>(null);
     const [showForm, setShowForm] = useState(false);
@@ -23,9 +29,20 @@ export default function TransacoesPage() {
         setTransacoes(transacoes);
     }, []);
 
+    const fetchAuxData = useCallback(async () => {
+        const [cats, cts] = await Promise.all([getAllCategorias(), getAllContas()]);
+        setCategorias(cats);
+        setContas(cts.filter((c) => c.ativa));
+    }, []);
+
     useEffect(() => {
         fetchTransacoes();
-    }, [fetchTransacoes]);
+        fetchAuxData();
+    }, [fetchTransacoes, fetchAuxData]);
+
+    const handleFiltersChange = useCallback((filtered: any[]) => {
+        setFilteredTransacoes(filtered);
+    }, []);
 
     const handleCloseForm = useCallback(() => {
         setShowForm(false);
@@ -59,12 +76,10 @@ export default function TransacoesPage() {
         setTransacaoParaExcluir(null);
     };
 
-
     const columns = createColumns({
         onEdit: handleEdit,
         onDelete: handleDelete,
     });
-
 
     return (
         <div className="space-y-6 p-6">
@@ -86,20 +101,16 @@ export default function TransacoesPage() {
                 </Button>
             </div>
 
+            {/* Filtros avançados */}
+            <TransacaoFilters
+                data={transacoes}
+                categorias={categorias}
+                contas={contas}
+                onFiltersChange={handleFiltersChange}
+            />
+
             {/* Tabela de transações */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lista de Transações</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <DataTable
-                        columns={columns}
-                        data={transacoes}
-                        searchKeys={['descricao', 'envolvido']}
-                        searchPlaceholder="Pesquisar transação..."
-                    />
-                </CardContent>
-            </Card>
+            <DataTable columns={columns} data={filteredTransacoes} defaultPageSize={10} />
 
             {/* Modal de formulário */}
             <TransacaoForm

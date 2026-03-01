@@ -35,6 +35,7 @@ export const createColumns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<any
         },
         cell: ({ row }) => {
             const data = row.original.data;
+            if (!data) return <span>-</span>;
             // 2. Formate a data em UTC para evitar a conversão de fuso horário
             const dataFormatada = formatInTimeZone(data, 'Etc/UTC', 'dd/MM/yyyy');
             return <span>{dataFormatada}</span>;

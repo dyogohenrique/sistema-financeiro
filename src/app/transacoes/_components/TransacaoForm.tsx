@@ -1,9 +1,10 @@
 'use client';
 
-import { getAllCategorias } from '@/actions/CategotiasActions';
+import { getAllCategorias, quickCreateCategoria } from '@/actions/CategotiasActions';
 import { getAllContas } from '@/actions/ContasActions';
 import { createTransacao, updateTransacao } from '@/actions/TransacoesActions';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
     DialogContent,
@@ -20,6 +21,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -27,11 +29,102 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Categoria, Conta, StatusTransacao, TipoTransacao } from '@prisma/client';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
+import ReactSelect, { MultiValue, StylesConfig } from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import { z } from 'zod';
+
+// --- react-select types & styles ---
+
+interface CategoriaOption {
+    value: number;
+    label: string;
+    color: string;
+}
+
+const categoriaSelectStyles: StylesConfig<CategoriaOption, true> = {
+    control: (base, state) => ({
+        ...base,
+        minHeight: '36px',
+        fontSize: '14px',
+        borderColor: state.isFocused ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+        backgroundColor: 'hsl(var(--background))',
+        boxShadow: state.isFocused ? '0 0 0 2px hsl(var(--ring) / 0.2)' : 'none',
+        borderRadius: 'calc(var(--radius) - 2px)',
+        '&:hover': { borderColor: 'hsl(var(--ring))' },
+    }),
+    menu: (base) => ({
+        ...base,
+        backgroundColor: 'hsl(var(--popover))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: 'calc(var(--radius) - 2px)',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        zIndex: 50,
+    }),
+    option: (base, state) => ({
+        ...base,
+        fontSize: '14px',
+        backgroundColor: state.isFocused ? 'hsl(var(--accent))' : 'transparent',
+        color: 'hsl(var(--popover-foreground))',
+        cursor: 'pointer',
+        '&:active': { backgroundColor: 'hsl(var(--accent))' },
+    }),
+    multiValue: (base) => ({
+        ...base,
+        backgroundColor: 'hsl(var(--secondary))',
+        borderRadius: 'calc(var(--radius) - 4px)',
+    }),
+    multiValueLabel: (base) => ({
+        ...base,
+        color: 'hsl(var(--secondary-foreground))',
+        fontSize: '12px',
+        padding: '1px 4px',
+    }),
+    multiValueRemove: (base) => ({
+        ...base,
+        color: 'hsl(var(--muted-foreground))',
+        borderRadius: '0 calc(var(--radius) - 4px) calc(var(--radius) - 4px) 0',
+        '&:hover': { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+    }),
+    placeholder: (base) => ({
+        ...base,
+        color: 'hsl(var(--muted-foreground))',
+        fontSize: '14px',
+    }),
+    input: (base) => ({
+        ...base,
+        color: 'hsl(var(--foreground))',
+    }),
+    indicatorSeparator: () => ({ display: 'none' }),
+    dropdownIndicator: (base) => ({
+        ...base,
+        padding: '4px',
+        color: 'hsl(var(--muted-foreground))',
+    }),
+    clearIndicator: (base) => ({
+        ...base,
+        padding: '4px',
+        color: 'hsl(var(--muted-foreground))',
+        '&:hover': { color: 'hsl(var(--destructive))' },
+    }),
+};
+
+const formatCategoriaOptionLabel = (option: CategoriaOption) => (
+    <div className="flex items-center gap-2">
+        <span
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: option.color }}
+        />
+        <span>{option.label}</span>
+    </div>
+);
 
 interface TransacaoFormProps {
     open: boolean;
@@ -137,17 +230,13 @@ export function TransacaoForm({ open, transacaoId, transacaoData, onClose }: Tra
         return date.toISOString().split('T')[0];
     };
 
-    const handleCategoriaToggle = (categoriaId: number) => {
-        const current = form.getValues('categoriaIds');
-        if (current.includes(categoriaId)) {
-            form.setValue(
-                'categoriaIds',
-                current.filter((id) => id !== categoriaId)
-            );
-        } else {
-            form.setValue('categoriaIds', [...current, categoriaId]);
-        }
-    };
+    // Build options for react-select
+    const categoriaOptions: CategoriaOption[] = categorias.map((c) => ({
+        value: c.id,
+        label: c.name,
+        color: c.color,
+    }));
+    const categoriaValue = categoriaOptions.filter((o) => categoriasSelecionadas.includes(o.value));
 
     const onSubmit = (data: TransacaoFormData) => {
         setServerError(null);
@@ -305,11 +394,47 @@ export function TransacaoForm({ open, transacaoId, transacaoData, onClose }: Tra
                                 control={form.control}
                                 name="data"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="flex flex-col">
                                         <FormLabel>Data</FormLabel>
-                                        <FormControl>
-                                            <Input type="date" {...field} />
-                                        </FormControl>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'w-full pl-3 text-left font-normal',
+                                                            !field.value && 'text-muted-foreground'
+                                                        )}
+                                                    >
+                                                        {field.value ? (
+                                                            format(
+                                                                new Date(field.value + 'T00:00:00'),
+                                                                'dd/MM/yyyy'
+                                                            )
+                                                        ) : (
+                                                            <span>Selecione uma data</span>
+                                                        )}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={
+                                                        field.value
+                                                            ? new Date(field.value + 'T00:00:00')
+                                                            : undefined
+                                                    }
+                                                    onSelect={(date) =>
+                                                        field.onChange(
+                                                            date ? format(date, 'yyyy-MM-dd') : ''
+                                                        )
+                                                    }
+                                                    locale={ptBR}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -354,41 +479,44 @@ export function TransacaoForm({ open, transacaoId, transacaoData, onClose }: Tra
                                 <FormItem>
                                     <FormLabel>Categorias *</FormLabel>
                                     <FormControl>
-                                        <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-md border p-2">
-                                            {categorias.map((categoria) => (
-                                                <div
-                                                    key={categoria.id}
-                                                    className={`flex cursor-pointer items-center gap-2 rounded p-2 transition-colors ${
-                                                        categoriasSelecionadas.includes(
-                                                            categoria.id
-                                                        )
-                                                            ? 'border-blue-300 bg-blue-100'
-                                                            : 'hover:bg-gray-50'
-                                                    }`}
-                                                    onClick={() =>
-                                                        handleCategoriaToggle(categoria.id)
-                                                    }
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={categoriasSelecionadas.includes(
-                                                            categoria.id
-                                                        )}
-                                                        onChange={() =>
-                                                            handleCategoriaToggle(categoria.id)
-                                                        }
-                                                        className="rounded"
-                                                    />
-                                                    <div
-                                                        className="h-3 w-3 rounded-full"
-                                                        style={{ backgroundColor: categoria.color }}
-                                                    />
-                                                    <span className="text-sm">
-                                                        {categoria.name}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <CreatableSelect<CategoriaOption, true>
+                                            isMulti
+                                            options={categoriaOptions}
+                                            value={categoriaValue}
+                                            onChange={(selected: MultiValue<CategoriaOption>) =>
+                                                form.setValue(
+                                                    'categoriaIds',
+                                                    selected.map((s) => s.value),
+                                                    { shouldValidate: true }
+                                                )
+                                            }
+                                            onCreateOption={async (inputValue: string) => {
+                                                try {
+                                                    const newCat =
+                                                        await quickCreateCategoria(inputValue);
+                                                    setCategorias((prev) => [newCat, ...prev]);
+                                                    const currentIds =
+                                                        form.getValues('categoriaIds');
+                                                    form.setValue(
+                                                        'categoriaIds',
+                                                        [...currentIds, newCat.id],
+                                                        { shouldValidate: true }
+                                                    );
+                                                } catch (e) {
+                                                    console.error('Erro ao criar categoria:', e);
+                                                }
+                                            }}
+                                            formatCreateLabel={(inputValue: string) =>
+                                                `Criar "${inputValue}"`
+                                            }
+                                            placeholder="Selecione ou crie categorias"
+                                            noOptionsMessage={() =>
+                                                'Digite para criar uma categoria'
+                                            }
+                                            formatOptionLabel={formatCategoriaOptionLabel}
+                                            styles={categoriaSelectStyles}
+                                            isClearable
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

@@ -151,3 +151,17 @@ export async function getAllCategorias(): Promise<Categoria[]> {
     });
     return categorias;
 }
+
+// Quick create for inline usage (e.g. from transaction form)
+export async function quickCreateCategoria(name: string): Promise<Categoria> {
+    // Generate a random pastel color
+    const hue = Math.floor(Math.random() * 360);
+    const color = `hsl(${hue}, 70%, 60%)`;
+
+    const categoria = await prisma.categoria.create({
+        data: { name, color },
+    });
+
+    revalidatePath('/configuracoes');
+    return categoria;
+}
